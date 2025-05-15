@@ -1,0 +1,119 @@
+---
+title: "Corona"
+author: "Nadeesha"
+date: "11/14/2020"
+output: word_document
+---
+
+```{r message=FALSE, warning=FALSE}
+#Load Required Libraries
+library(factoextra)
+library(NbClust)
+library(fpc)
+library(cluster)
+library(vegan)
+```
+
+```{r}
+#Load and Inspect Data
+dataset=read.csv("C:/Users/ASUS/Desktop/Corona/newcorona.csv",header = TRUE)
+head(dataset)
+```
+```{r}
+#Remove Zero Variance Columns
+df=dataset[,sapply(dataset, function(v) var(v, na.rm=TRUE)!=0)]
+```
+
+```{r}
+# Check missing values
+is.na(df)
+which(is.na(df))
+```
+
+
+```{r}
+# Impute missing values with column means
+for(i in 1:ncol(df)){
+  df[is.na(df[,i]), i] <- mean(df[,i], na.rm = TRUE)
+}
+```
+
+```{r}
+# Verify no missing values remain
+which(is.na(df))
+```
+
+
+
+```{r}
+# Remove non-numeric column before scaling
+scaled_data=scale(df[,-1])
+```
+
+
+
+```{r}
+# Elbow method
+fviz_nbclust(scaled_data, kmeans, method = "wss") +
+    geom_vline(xintercept = 4, linetype = 2)+
+  labs(subtitle = "Elbow method")
+```
+
+```{r}
+#Manual Elbow Plot
+set.seed(13)
+
+wss <- (nrow(scaled_data)-1)*sum(apply(scaled_data,2,var))
+for (i in 2:15) wss[i] <- sum(kmeans(scaled_data,
+                                     centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+```
+
+
+```{r}
+#Silhoutte Method
+set.seed(13)
+
+pamk.best2 <- pamk(scaled_data)
+cat("number of clusters estimated by optimum average silhouette width:", pamk.best2$nc, "\n")
+```
+
+```{r}
+#Gap Statistics Method
+set.seed(13)
+
+clusGap(scaled_data, kmeans, 10, B = 100, verbose = interactive())
+```
+
+```{r}
+#calinsky criterion
+
+cal_fit <- cascadeKM(scaled_data, 1, 10, iter = 1000)
+plot(cal_fit, sortg = TRUE, grpmts.plot = TRUE)
+
+calinski.best <- as.numeric(which.max(cal_fit$results[2,]))
+cat("Calinski criterion optimal number of clusters:", calinski.best, "\n")
+```
+
+```{r}
+#K-means Clustering (k = 4)
+set.seed(123)
+km.res <- kmeans(scaled_data, 4, nstart = 25)
+km.res
+```
+
+```{r}
+#PAM Clustering (k = 4)
+pam.res <- pam(df, 4)
+pam.res
+```
+
+```{r}
+#Cluster Visualization
+fviz_cluster(pam.res)
+```
+
+
+
+
